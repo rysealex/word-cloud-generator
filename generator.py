@@ -1,4 +1,5 @@
 from wordcloud import WordCloud
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import random
@@ -9,8 +10,21 @@ import random
     initalizing the boundary boxes for collision detection
 '''
 
+# generate the spiral coord
+def gen_spiral_coord(center_x, center_y, num_points, a=0.1, b=0.5):
+    coord = []
+    theta = 0
+    for _ in range(num_points):
+        r = a + b * theta
+        x = center_x + r * np.cos(theta)
+        y = center_y + r * np.sin(theta)
+        if 0 <= x <= width and 0 <= y <= height:
+            coord.append((x, y))
+        theta += 0.1
+    return coord
+
 # width and heigth of figure
-width, height = 18, 9
+width, height = 20, 10
 # spacing between points
 step = 1
 
@@ -20,14 +34,19 @@ for x in range(0, width, step):
     for y in range(0, height, step):
         coord.append((x, y))
 
-# total number of coord points
-total_coord = len(coord)
+'''
+    # create the coord points
+    # coord = gen_spiral_coord(width / 2, height / 2, 2000)
+'''
 
 # shuffle the coord
 random.shuffle(coord)
 
+# total number of coord points
+total_coord = len(coord)
+
 # prepare the figure
-fig, ax = plt.subplots(figsize=(20, 10))
+fig, ax = plt.subplots(figsize=(22, 11))
 plt.xlim(0, width)
 plt.ylim(0, height)
 plt.axis('off')
@@ -70,9 +89,9 @@ def basic_word_cloud(word_list):
     third = word_list[two_third:]
 
     # place the words
-    unused_points = place_words(first, 100, 'bold', 'red', 0)
-    unused_points = unused_points + place_words(second, 50, 'bold', 'black', 90)
-    unused_points = unused_points + place_words(third, 25, 'normal', 'blue', 0)
+    unused_points = place_words(first, (60, 80), 'bold', '#003366', 0)
+    unused_points = unused_points + place_words(second, (30, 50), 'bold', '#ff7f0e', 90)
+    unused_points = unused_points + place_words(third, (10, 20), 'normal', 'black', 0)
 
     # plot used points as green
     if used_coord:
@@ -168,18 +187,25 @@ def basic_word_cloud(word_list):
     print(f'The number of unused points: {unused_points} / {total_coord}')
     plt.show()
 
-def place_words(words, fontsize, fontweight, color, rotation):
+def place_words(words, fontrange, fontweight, color, rotation):
 
     # track the number of unused points
     unused_points = 0
 
     # inflate boundary padding
-    padding = 1
+    padding = 0.1
+
+    # get the range for the current words font sizes
+    min_size = fontrange[0]
+    max_size = fontrange[1]
 
     # place each word in the current words list
     for word in words:
         # flag for if current word was placed
         placed = False
+
+        # get the current words font size from the current range
+        fontsize = random.randint(min_size, max_size)
 
         # continue until coord is empty
         while coord:
@@ -202,14 +228,33 @@ def place_words(words, fontsize, fontweight, color, rotation):
             # convert to data coords
             box_data = box.transformed(ax.transData.inverted())
 
+            '''
             # inflate boundary box
             x0, y0, x1, y1 = box_data.extents
             inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
+            '''
 
+            # padding of box size
+            padding_scale = 0.25
+
+            # get original extents
+            x0, y0, x1, y1 = box_data.extents
+            width = x1 - x0
+            height = y1 - y0
+
+            # apply the padding based on the size of the box
+            pad_x = width * padding_scale
+            pad_y = height * padding_scale
+
+            # create the padded box
+            padded_box = mtransforms.Bbox.from_extents(
+                x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
+            )
+            
             # check for a collision with near text objects
-            if not any(inflated_box.overlaps(existing) for existing in boxes):
+            if not any(padded_box.overlaps(existing) for existing in boxes):
                 # add text object (no collision detected)
-                boxes.append(inflated_box)
+                boxes.append(padded_box)
                 # add used coord points
                 used_coord.append((x, y))
                 placed = True # flip flag
@@ -240,13 +285,14 @@ def read_wordfile():
     return word_list
 
 # switch between static word_list or dynamic word_list from the wordfile.txt
-STATIC = False
+STATIC = True
 
 if STATIC:
     word_list = [
                     'Alex', 'Jay', 'AI', 'Computer', 'Python', 'Java', 'C#', 'CPU', 'Jacob', 'Model', 'Network', 'Code', 
                     'System', 'React', 'JS', 'RAM', 'SQL', 'Algorithms', 'Database', 'Tech', 'Internet', 'Protocol',
-                    'Binary', 'Data', 'Software', 'Storage', 'Theory', 'Access', 'Web', 'Security', 'User', 'Virtual'
+                    'Binary', 'Data', 'Software', 'Storage', 'Theory', 'Access', 'Web', 'Security', 'User', 'Virtual',
+                    'Error', 'Assert', 'Functionality', 'Feature', 'Mobile', 'Application', 'Program', 'XOR'
                     ]
 else:
     word_list = read_wordfile()
