@@ -26,18 +26,20 @@ def gen_spiral_coord(center_x, center_y, num_points, a=0.1, b=0.5):
 # width and heigth of figure
 width, height = 20, 10
 # spacing between points
-step = 1
+step = 0.5
 
+'''
 # generate all possible coordinates
 coord = []
-for x in range(0, width, step):
-    for y in range(0, height, step):
+for x in np.arange(0, width, step):
+    for y in np.arange(0, height, step):
         coord.append((x, y))
+'''
+        
 
-'''
-    # create the coord points
-    # coord = gen_spiral_coord(width / 2, height / 2, 2000)
-'''
+# create the coord points
+coord = gen_spiral_coord(width / 2, height / 2, 2000)
+
 
 # shuffle the coord
 random.shuffle(coord)
@@ -50,16 +52,23 @@ fig, ax = plt.subplots(figsize=(22, 11))
 plt.xlim(0, width)
 plt.ylim(0, height)
 plt.axis('off')
+fig.set_facecolor('black')
 
-# plot all original coord points as gray
+# plot all original coord points as white
 xs, ys = zip(*coord)
-ax.scatter(xs, ys, color='gray', s=20)
+ax.scatter(xs, ys, color='white', s=20)
 
 # track used points
 used_coord = []
 
+# track unused points
+unused_coord = []
+
 # to store the boundary boxes for detecting overlaps
 boxes = []
+
+# hold any unused word
+unused_words = []
 
 # generate the word cloud
 def gen_word_cloud(word_list):
@@ -80,7 +89,7 @@ def gen_word_cloud(word_list):
 
 def basic_word_cloud(word_list):
 
-    word_list.sort(key=len)
+    word_list.sort(key=len, reverse=True)
     one_third = len(word_list) // 3
     two_third = one_third * 2
     # split into groups based on lengths
@@ -89,14 +98,13 @@ def basic_word_cloud(word_list):
     third = word_list[two_third:]
 
     # place the words
-    unused_points = place_words(first, (60, 80), 'bold', '#003366', 0)
-    unused_points = unused_points + place_words(second, (30, 50), 'bold', '#ff7f0e', 90)
-    unused_points = unused_points + place_words(third, (10, 20), 'normal', 'black', 0)
+    unused_points = place_words(first, (30, 40), 'bold', '#003366', 0)
+    unused_points += place_words(second, (20, 30), 'bold', '#ff7f0e', 90)
+    unused_points += place_words(third, (10, 20), 'bold', 'black', 0)
 
-    # plot used points as green
-    if used_coord:
-        xs_used, ys_used = zip(*used_coord)
-        ax.scatter(xs_used, ys_used, color='green', s=20)
+    # initiate the second chance for any unused words
+    if unused_words:
+        unused_points_2 = second_chance(unused_words, (10, 15), 'bold', '#0770bb', 0)
 
     '''
     # width and heigth of figure
@@ -184,41 +192,50 @@ def basic_word_cloud(word_list):
                 text_obj.remove()
     '''
     
-    print(f'The number of unused points: {unused_points} / {total_coord}')
+    # plot used points as green
+    if used_coord:
+        xs_used, ys_used = zip(*used_coord)
+        ax.scatter(xs_used, ys_used, color='green', s=20)
+
+    print(f'(1ST ATTEMPT) - Number of failed coordinates after first attempt: {unused_points} / {total_coord}')
+    if unused_words:
+        print(f'(2ND CHANCE) - Number of failed coordinates after second attempt: {unused_points_2} / {total_coord}')
     plt.show()
 
-def place_words(words, fontrange, fontweight, color, rotation):
+def place_words(words, fontrange, fontweight, color, rotation, first_size=60, first_color='red'):
 
     # track the number of unused points
     unused_points = 0
 
+    ''' 
     # inflate boundary padding
     padding = 0.1
+    '''
 
     # get the range for the current words font sizes
     min_size = fontrange[0]
     max_size = fontrange[1]
 
     # place each word in the current words list
-    for word in words:
+    for i, word in enumerate(words):
         # flag for if current word was placed
         placed = False
 
         # get the current words font size from the current range
-        fontsize = random.randint(min_size, max_size)
+        #fontsize = random.randint(min_size, max_size)
 
-        # continue until coord is empty
-        while coord:
-
-            # get a new coordinate
-            x, y = coord.pop()
+        # check for very first word
+        if i == 0:
+            
+            # start at center of image
+            x, y = (10, 5)
             # create the text object with current attributes
             text_obj = plt.text(
                 x, y, word,
-                fontsize=fontsize,
+                fontsize=first_size,
                 fontweight=fontweight,
                 ha='center', va='center',
-                color=color,
+                color=first_color,
                 rotation=rotation
             )
             fig.canvas.draw() # draw for checking bounds
@@ -227,12 +244,6 @@ def place_words(words, fontrange, fontweight, color, rotation):
             box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
             # convert to data coords
             box_data = box.transformed(ax.transData.inverted())
-
-            '''
-            # inflate boundary box
-            x0, y0, x1, y1 = box_data.extents
-            inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
-            '''
 
             # padding of box size
             padding_scale = 0.25
@@ -258,15 +269,174 @@ def place_words(words, fontrange, fontweight, color, rotation):
                 # add used coord points
                 used_coord.append((x, y))
                 placed = True # flip flag
+                print(f'Successfully placed FIRST word {word}')
+            else:
+                # remove collision text object
+                text_obj.remove()
+                # increment unused points
+                unused_points += 1
+                # add unused coord points
+                unused_coord.append((x, y))
+
+            if not placed:
+                unused_words.append(word)
+                print(f'Failed to place FIRST word {word}')
+            continue
+
+        for fontsize in range(max_size, min_size - 1, -1):
+
+            # continue until coord is empty
+            while coord:
+
+                # get a new coordinate
+                x, y = coord.pop()
+                # create the text object with current attributes
+                text_obj = plt.text(
+                    x, y, word,
+                    fontsize=fontsize,
+                    fontweight=fontweight,
+                    ha='center', va='center',
+                    color=color,
+                    rotation=rotation
+                )
+                fig.canvas.draw() # draw for checking bounds
+
+                # get boundary box in display coords
+                box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
+                # convert to data coords
+                box_data = box.transformed(ax.transData.inverted())
+
+                '''
+                # inflate boundary box
+                x0, y0, x1, y1 = box_data.extents
+                inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
+                '''
+
+                # padding of box size
+                padding_scale = 0.25
+
+                # get original extents
+                x0, y0, x1, y1 = box_data.extents
+                width = x1 - x0
+                height = y1 - y0
+
+                # apply the padding based on the size of the box
+                pad_x = width * padding_scale
+                pad_y = height * padding_scale
+
+                # create the padded box
+                padded_box = mtransforms.Bbox.from_extents(
+                    x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
+                )
+                
+                # check for a collision with near text objects
+                if not any(padded_box.overlaps(existing) for existing in boxes):
+                    # add text object (no collision detected)
+                    boxes.append(padded_box)
+                    # add used coord points
+                    used_coord.append((x, y))
+                    placed = True # flip flag
+                    print(f'Successfully placed {word}')
+                    break
+                else:
+                    # remove collision text object
+                    text_obj.remove()
+                    # increment unused points
+                    unused_points += 1
+                    # add unused coord points
+                    unused_coord.append((x, y))
+
+            if placed:
+                break
+
+        if not placed:
+            unused_words.append(word)
+            print(f'Could not place {word}')
+
+    return unused_points
+
+# second chance to place any unused words (this time with a smaller font size)
+def second_chance(unused_words, fontrange, fontweight, color, rotation):
+
+    # track the number of unused points
+    unused_points = 0
+
+    # get the range for the current words font sizes
+    min_size = fontrange[0]
+    max_size = fontrange[1]
+
+    # place each word in the current words list
+    for unused_word in unused_words:
+        # flag for if current word was placed
+        placed = False
+
+        # get the current words font size from the current range
+        fontsize = random.randint(min_size, max_size)
+
+        # continue until coord is empty
+        while unused_coord:
+
+            # get a new coordinate
+            x, y = unused_coord.pop()
+            # create the text object with current attributes
+            text_obj = plt.text(
+                x, y, unused_word,
+                fontsize=fontsize,
+                fontweight=fontweight,
+                ha='center', va='center',
+                color=color,
+                rotation=rotation
+            )
+            fig.canvas.draw() # draw for checking bounds
+
+            # get boundary box in display coords
+            box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
+            # convert to data coords
+            box_data = box.transformed(ax.transData.inverted())
+
+            '''
+            # inflate boundary box
+            x0, y0, x1, y1 = box_data.extents
+            inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
+            '''
+
+            # padding of box size
+            if fontsize < 20:
+                padding_scale = 0.25
+            else:
+                padding_scale = 0.1
+
+            # get original extents
+            x0, y0, x1, y1 = box_data.extents
+            width = x1 - x0
+            height = y1 - y0
+
+            # apply the padding based on the size of the box
+            pad_x = width * padding_scale
+            pad_y = height * padding_scale
+
+            # create the padded box
+            padded_box = mtransforms.Bbox.from_extents(
+                x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
+            )
+            
+            # check for a collision with near text objects
+            if not any(padded_box.overlaps(existing) for existing in boxes):
+                # add text object (no collision detected)
+                boxes.append(padded_box)
+                # add used coord points
+                used_coord.append((x, y))
+                placed = True # flip flag
+                print(f'Successfully placed {unused_word}')
                 break
             else:
                 # remove collision text object
                 text_obj.remove()
                 # increment unused points
-                unused_points = unused_points + 1
+                unused_points += 1
 
         if not placed:
-            print(f'Could not place {word}')
+            print(f'Could not place {unused_word}')
 
     return unused_points
 
@@ -292,7 +462,8 @@ if STATIC:
                     'Alex', 'Jay', 'AI', 'Computer', 'Python', 'Java', 'C#', 'CPU', 'Jacob', 'Model', 'Network', 'Code', 
                     'System', 'React', 'JS', 'RAM', 'SQL', 'Algorithms', 'Database', 'Tech', 'Internet', 'Protocol',
                     'Binary', 'Data', 'Software', 'Storage', 'Theory', 'Access', 'Web', 'Security', 'User', 'Virtual',
-                    'Error', 'Assert', 'Functionality', 'Feature', 'Mobile', 'Application', 'Program', 'XOR'
+                    'Error', 'Assert', 'Functionality', 'Feature', 'Mobile', 'Application', 'Program', 'XOR', 'Sets',
+                    'Schema', 'Relation', 'Database', 'Docker', 'Array', 'Stack', 'Queue', 'Graph', 'GPU', 'PHP'
                     ]
 else:
     word_list = read_wordfile()
