@@ -23,7 +23,6 @@ if STATIC:
                     'Schema', 'Relation', 'Docker', 'Array', 'Stack', 'Queue', 'Graph', 'GPU', 'PHP',
                     'Error', 'Assert', 'Functionality', 'Feature', 'Mobile', 'Application', 'Program', 'XOR', 'Sets',
                     'Schema', 'Relation', 'Docker', 'Array', 'Stack', 'Queue', 'Graph', 'GPU', 'PHP'
-
     ]
                     
 else:
