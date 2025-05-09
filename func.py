@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import random
+import requests
 
 '''
     -------------------------------------------------------------------------------------------------------
@@ -23,7 +24,7 @@ def gen_word_cloud(word_list):
     wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
 
     # display the word cloud
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(22, 11))
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis('off')
     plt.show()
@@ -54,6 +55,22 @@ def read_wordfile():
                                             Basic word cloud generator
     -------------------------------------------------------------------------------------------------------
 '''
+
+'''
+    Get words related to the user input theme word using Datamuse API
+    Return a list of related words
+'''
+def get_related_words(theme_word, max_words=75):
+    response = requests.get(
+        "https://api.datamuse.com/words",
+        params={"ml": theme_word, "max": max_words}
+    )
+    if response.status_code != 200:
+        raise Exception(f"Datamuse API error: {response.status_code}")
+    
+    related_words = [item["word"] for item in response.json()]
+    related_words.insert(0, theme_word)
+    return related_words
 
 '''
     Width, height, and step constants
@@ -90,7 +107,7 @@ random.shuffle(coord)
 total_coord = len(coord)
 
 # prepare the figure
-fig, ax = plt.subplots(figsize=(22, 11))
+fig, ax = plt.subplots(figsize=(20, 10))
 plt.xlim(0, width)
 plt.ylim(0, height)
 plt.axis('off')
@@ -120,8 +137,11 @@ box_index = index.Index()
 '''
 def basic_word_cloud(word_list):
 
+    # extract the theme word from word list
+    theme_word = word_list.pop(0)
     # sort word list by longest to shortest
     word_list.sort(key=len, reverse=True)
+    word_list = [theme_word] + word_list
     one_third = len(word_list) // 3
     two_third = one_third * 2
     # split into groups based on lengths
@@ -146,7 +166,7 @@ def basic_word_cloud(word_list):
         # get last coord point to try with
         last_coord = coord[num_coord:]
         print("LAST CHANCE MECHANISM ENGAGED")
-        unused_points_3 = last_chance(unused_words_2, last_coord, (15, 25), 'bold', 'white', (0, 90))
+        unused_points_3 = last_chance(unused_words_2, last_coord, (10, 20), 'bold', 'white', (0, 90))
 
     # display accuracy
     print(f'(1ST ATTEMPT) - Number of failed coordinates after first attempt: {unused_points} / {total_coord}')
@@ -208,7 +228,7 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
             box_data = box.transformed(ax.transData.inverted())
 
             # padding of box size
-            padding_scale = 0.25
+            padding_scale = 0.1
 
             # get original extents
             x0, y0, x1, y1 = box_data.extents
@@ -235,10 +255,10 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
                 used_coord.append((x, y))
                 placed = True # flip flag
                 # display the padded box surrounding the word
-                rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                      padded_box.width, padded_box.height,
                      linewidth=1, edgecolor='white', facecolor='none')
-                ax.add_patch(rect)
+                ax.add_patch(rect)'''
                 print(f'Successfully placed FIRST word {word}')
                 continue
             else:
@@ -282,7 +302,7 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
                 '''
 
                 # padding of box size
-                padding_scale = 0.25
+                padding_scale = 0.15
 
                 # get original extents
                 x0, y0, x1, y1 = box_data.extents
@@ -299,9 +319,6 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
                 )
                 padded_box = box_data.expanded(1.75, 1.75)
                 
-                '''
-                    NEED TO FIX --- COLLISION IS BEING DETECTED FOR EVERY WORD
-                '''
                 # check for a collision with near text objects
                 collisions = list(box_index.intersection(padded_box.extents))
                 if not collisions:
@@ -312,10 +329,10 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
                     used_coord.append((x, y))
                     placed = True # flip flag
                     # display the padded box surrounding the word
-                    rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                    '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                         padded_box.width, padded_box.height,
                         linewidth=1, edgecolor='white', facecolor='none')
-                    ax.add_patch(rect)
+                    ax.add_patch(rect)'''
                     print(f'Successfully placed {word}')
                     break
                 else:
@@ -388,7 +405,7 @@ def second_chance(unused_words, fontrange, fontweight, color, rotation):
             '''
 
             # set the padding scale
-            padding_scale = 0.25
+            padding_scale = 0.15
 
             # get original extents
             x0, y0, x1, y1 = box_data.extents
@@ -414,10 +431,10 @@ def second_chance(unused_words, fontrange, fontweight, color, rotation):
                 used_coord.append((x, y))
                 placed = True # flip flag
                 # display the padded box surrounding the word
-                rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                         padded_box.width, padded_box.height,
                         linewidth=1, edgecolor='white', facecolor='none')
-                ax.add_patch(rect)
+                ax.add_patch(rect)'''
                 print(f'Successfully placed {unused_word}')
                 break
             else:
@@ -484,7 +501,7 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, color, rotati
             '''
 
             # set the padding scale
-            padding_scale = 0.25
+            padding_scale = 0.05
 
             # get original extents
             x0, y0, x1, y1 = box_data.extents
@@ -510,10 +527,10 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, color, rotati
                 used_coord.append((x, y))
                 placed = True # flip flag
                 # display the padded box surrounding the word
-                rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                         padded_box.width, padded_box.height,
                         linewidth=1, edgecolor='white', facecolor='none')
-                ax.add_patch(rect)
+                ax.add_patch(rect)'''
                 print(f'Successfully placed {unused_word_2}')
                 break
             else:

@@ -35,9 +35,15 @@ else:
 '''
 BASIC = True
 
+print("Welcome to the word cloud generator!")
+theme_word = input("Enter your theme word to start generating: ")
+print(f"Generating with {theme_word}")
+
+related_words = fc.get_related_words(theme_word)
+
 if BASIC:
     start_time = time.time()
-    fc.basic_word_cloud(word_list)
+    fc.basic_word_cloud(related_words)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {round(elapsed_time, 2)} seconds")
