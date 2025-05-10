@@ -8,53 +8,18 @@ import requests
 
 '''
     -------------------------------------------------------------------------------------------------------
-                                            Advanced word cloud generator
-    -------------------------------------------------------------------------------------------------------
-'''
-
-'''
-    Generates the advanced word cloud
-    Saves as png file (wordcloud.png)
-'''
-def gen_word_cloud(word_list):
-    
-    text = ' '.join(word_list)
-
-    # create word cloud object
-    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
-
-    # display the word cloud
-    plt.figure(figsize=(22, 11))
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.axis('off')
-    plt.show()
-
-    # save the file
-    wordcloud.to_file('wordcloud.png')
-
-'''
-    Read words from text file (wordfile.txt)
-    Returns word_list, a list of all words
-'''
-def read_wordfile():
-
-    word_list = []
-
-    # extract words from wordfile
-    with open('wordfile.txt', 'r') as file:
-        # read each line
-        for line in file:
-            # read each word
-            for word in line.split():
-                word_list.append(word)
-
-    return word_list
-
-'''
-    -------------------------------------------------------------------------------------------------------
                                             Basic word cloud generator
     -------------------------------------------------------------------------------------------------------
 '''
+
+'''
+    Check if the theme word is a real english word.
+    Return true if real and false if not.
+'''
+def is_valid_word(theme_word):
+    response = requests.get(f"https://api.datamuse.com/words?sp={theme_word}&max=1")
+    data = response.json()
+    return len(data) > 0 and data[0]['word'].lower() == theme_word.lower()
 
 '''
     Get words related to the user input theme word using Datamuse API
@@ -107,11 +72,13 @@ random.shuffle(coord)
 total_coord = len(coord)
 
 # prepare the figure
+#plt.rcParams['toolbar'] = 'None'
 fig, ax = plt.subplots(figsize=(20, 10))
 plt.xlim(0, width)
 plt.ylim(0, height)
 plt.axis('off')
-fig.set_facecolor('black')
+fm = plt.get_current_fig_manager()
+fm.full_screen_toggle()
 
 '''# plot all original coord points as white
 xs, ys = zip(*coord)
@@ -129,13 +96,20 @@ unused_words = []
 # to store the boundary boxes for detecting overlaps
 boxes = []
 
+# to store all the placed words and their bounding boxes
+placed_words = []
+
 # R-tree box index
 box_index = index.Index()
 
 '''
     Generate the basic word cloud
 '''
-def basic_word_cloud(word_list):
+def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3):
+
+    # set background color and connect hover effect
+    fig.set_facecolor(bkg_color)
+    fig.canvas.mpl_connect('motion_notify_event', on_hover)
 
     # extract the theme word from word list
     theme_word = word_list.pop(0)
@@ -150,38 +124,42 @@ def basic_word_cloud(word_list):
     third = word_list[two_third:]
 
     # place the words
-    (unused_points, num_coord) = place_words(first, (20, 30), 'bold', '#003366', 0)
-    (up2, nc2) = place_words(second, (15, 25), 'bold', '#ff7f0e', 90)
-    (up3, nc3) = place_words(third, (10, 25), 'bold', 'yellow', 0)
+    (unused_points, num_coord) = place_words(first, (20, 30), 'bold', color1, 0, theme_color)
+    (up2, nc2) = place_words(second, (15, 25), 'bold', color2, 90, theme_color)
+    (up3, nc3) = place_words(third, (10, 25), 'bold', color3, 0, theme_color)
     unused_points += up2 + up3
     num_coord += nc2 + nc3
 
+    # create color ranges from users four color choices for second and last chances
+    second_color = [theme_color, color1, color2, color3]
+    last_color = [theme_color, color1, color2, color3]
+
     # initiate the second chance for any unused words
     if unused_words:
-        print("Starting 2ND CHANCE")
-        (unused_points_2, unused_words_2) = second_chance(unused_words, (7, 10), 'bold', '#0770bb', 0)
+        #print("Starting 2ND CHANCE")
+        (unused_points_2, unused_words_2) = second_chance(unused_words, (7, 10), 'bold', second_color, 0)
 
     # begin the last chance if still any unused words remaining
     if unused_words_2:
         # get last coord point to try with
         last_coord = coord[num_coord:]
-        print("LAST CHANCE MECHANISM ENGAGED")
-        unused_points_3 = last_chance(unused_words_2, last_coord, (10, 20), 'bold', 'white', (0, 90))
+        #print("LAST CHANCE MECHANISM ENGAGED")
+        unused_points_3 = last_chance(unused_words_2, last_coord, (10, 20), 'bold', last_color, (0, 90))
 
-    # display accuracy
+    '''# display accuracy
     print(f'(1ST ATTEMPT) - Number of failed coordinates after first attempt: {unused_points} / {total_coord}')
     if unused_words:
         print(f'(2ND CHANCE) - Number of failed coordinates after second attempt: {unused_points_2} / {total_coord}')
     if unused_words_2:
         print(f'(LAST CHANCE) - Number of failed coordinates after last attempt: {unused_points_3} / {total_coord}')
-
+    '''
     plt.show()
 
 '''
     Attempt to place all the words on the word cloud
     Returns the total number of unused points
 '''
-def place_words(words, fontrange, fontweight, color, rotation, first_size=60, first_color='red'):
+def place_words(words, fontrange, fontweight, color, rotation, first_color, first_size=80):
 
     # track the number of unused points
     unused_points = 0
@@ -259,7 +237,8 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
                      padded_box.width, padded_box.height,
                      linewidth=1, edgecolor='white', facecolor='none')
                 ax.add_patch(rect)'''
-                print(f'Successfully placed FIRST word {word}')
+                #print(f'Successfully placed FIRST word {word}')
+                placed_words.append((word, padded_box))
                 continue
             else:
                 # remove collision text object
@@ -333,7 +312,8 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
                         padded_box.width, padded_box.height,
                         linewidth=1, edgecolor='white', facecolor='none')
                     ax.add_patch(rect)'''
-                    print(f'Successfully placed {word}')
+                    #print(f'Successfully placed {word}')
+                    placed_words.append((word, padded_box))
                     break
                 else:
                     # remove collision text object
@@ -347,7 +327,7 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
             unused_points += 1
             # add unused coord points
             unused_coord.append((x, y))
-            print(f'Could not place {word}')
+            #print(f'Could not place {word}')
 
     return (unused_points, coord_index)
 
@@ -357,7 +337,7 @@ def place_words(words, fontrange, fontweight, color, rotation, first_size=60, fi
     Next tries to place with global remaining coord points
     Returns the total number of unused points
 '''
-def second_chance(unused_words, fontrange, fontweight, color, rotation):
+def second_chance(unused_words, fontrange, fontweight, color_range, rotation):
 
     # track the number of unused points
     unused_points = 0
@@ -376,6 +356,9 @@ def second_chance(unused_words, fontrange, fontweight, color, rotation):
 
         # get the current words font size from the current range
         fontsize = random.randint(min_size, max_size)
+
+        # get random color from color range
+        color = random.choice(color_range)
 
         # continue until coord is empty
         while unused_coord:
@@ -435,7 +418,8 @@ def second_chance(unused_words, fontrange, fontweight, color, rotation):
                         padded_box.width, padded_box.height,
                         linewidth=1, edgecolor='white', facecolor='none')
                 ax.add_patch(rect)'''
-                print(f'Successfully placed {unused_word}')
+                #print(f'Successfully placed {unused_word}')
+                placed_words.append((unused_word, padded_box))
                 break
             else:
                 # remove collision text object
@@ -445,11 +429,11 @@ def second_chance(unused_words, fontrange, fontweight, color, rotation):
 
         if not placed:
             unused_words_2.append(unused_word)
-            print(f'Could not place {unused_word} on unused point')
+            #print(f'Could not place {unused_word} on unused point')
 
     return (unused_points, unused_words_2)
 
-def last_chance(unused_words_2, last_coord, fontrange, fontweight, color, rotationrange):
+def last_chance(unused_words_2, last_coord, fontrange, fontweight, color_range, rotationrange):
 
     # track the number of unused points
     unused_points = 0
@@ -472,6 +456,9 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, color, rotati
 
         # get random rotation (either 0 or 90 degrees)
         rotation = random.choice([r1, r2])
+
+        # get random color from color range
+        color = random.choice(color_range)
 
         # continue until coord is empty
         while last_coord:
@@ -531,7 +518,8 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, color, rotati
                         padded_box.width, padded_box.height,
                         linewidth=1, edgecolor='white', facecolor='none')
                 ax.add_patch(rect)'''
-                print(f'Successfully placed {unused_word_2}')
+                #print(f'Successfully placed {unused_word_2}')
+                placed_words.append((unused_word_2, padded_box))
                 break
             else:
                 # remove collision text object
@@ -539,7 +527,21 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, color, rotati
                 # increment unused points
                 unused_points += 1
 
-        if not placed:
-            print(f'Could not place {unused_word_2} on last try')
+        #if not placed:
+            #print(f'Could not place {unused_word_2} on last try')
 
     return unused_points
+
+def on_hover(event):
+    if not event.inaxes:
+        return
+    # get the inverse transform to go from display to data coordinates
+    inverse_transform = event.inaxes.transData.inverted()
+    mouse_data_x, mouse_data_y = inverse_transform.transform((event.x, event.y))
+    # for each word connect to toolbar on hover
+    for word, bbox in placed_words:
+        if bbox.contains(mouse_data_x, mouse_data_y):
+            fig.canvas.toolbar.set_message(f"Hovered: {word}")
+            return
+    # rest toolbar
+    fig.canvas.toolbar.set_message("")
