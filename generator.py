@@ -25,6 +25,7 @@ class Spinner:
                 sys.stdout.flush()
                 time.sleep(0.1)
                 idx += 1
+            os.system('cls')
             sys.stdout.write('\rFinished generating word cloud!')
 
         self.thread = threading.Thread(target=spin)
@@ -35,23 +36,39 @@ class Spinner:
         self.thread.join()
 
 # start
-print("Welcome to the word cloud generator!")
-theme_word = input("Enter your theme word: ")
+print("----------------------------------------------------------------------")
+print("\t\tWelcome to the word cloud generator!")
+print("----------------------------------------------------------------------")
+theme_word = input("Enter a theme word: ")
 
 # check for valid word
 if not fc.is_valid_word(theme_word):
     print("Please enter a real english word!")
     exit()
 
+# get number of related words
+try:
+    num_words = int(input("Enter the number of related words (0 < # <= 100): "))
+    if num_words < 1 or num_words > 100:
+        print("Enter only numbers in range 1 to 100!")
+        exit()
+except ValueError:
+    print("Enter only numbers in range 1 to 100!")
+    exit()
+
 # check for related words
-related_words = fc.get_related_words(theme_word)
-if len(related_words) != 76:
+related_words = fc.get_related_words(theme_word, num_words)
+if len(related_words) != num_words+1:
     print(f"Sorry, no related words found for {theme_word}.")
+    print("Try a different word or a lower number of related words.")
     exit()
 
 # get background color
+os.system('cls')
 bkg_colors = ["white", "black", "gray"]
-print("Choose a background color - [white=1, black=2, gray=3]")
+print("----------------------------------------------------------------------")
+print("\tChoose a background color - [white=1, black=2, gray=3]")
+print("----------------------------------------------------------------------")
 try:
     bkg_color = int(input("Background color: "))
     if bkg_color < 1 or bkg_color > 3:
@@ -62,8 +79,11 @@ except ValueError:
     exit()
 
 # get colors
+os.system('cls')
 colors = ["red", "blue", "green", "yellow", "purple", "orange"]
-print("Choose a color for your theme word - [red=1, blue=2, green=3, yellow=4, purple=5, orange=6]")
+print("----------------------------------------------------------------------")
+print("Choose colors - [red=1, blue=2, green=3, yellow=4, purple=5, orange=6]")
+print("----------------------------------------------------------------------")
 try:
     theme_color = int(input("Theme color: "))
     if theme_color < 1 or theme_color > 6:
@@ -90,6 +110,36 @@ except ValueError:
     print("Enter only numbers in range 1 to 6!")
     exit()
 
+# get font weight
+os.system('cls')
+font_weights = ['light', 'normal', 'bold']
+print("----------------------------------------------------------------------")
+print("\tChoose a font weight - [light=1, normal=2, bold=3]")
+print("----------------------------------------------------------------------")
+try:
+    font_weight = int(input("Font weight: "))
+    if font_weight < 1 or font_weight > 3:
+        print("Enter only numbers in range 1 to 3!")
+        exit()
+except ValueError:
+    print("Enter only numbers in range 1 to 3!")
+    exit()
+
+# get font type
+os.system('cls')
+font_types = ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy']
+print("-------------------------------------------------------------------------------")
+print("Choose a font type - [serif=1, sans-serif=2, monospace=3, cursive=4, fantasy=5]")
+print("-------------------------------------------------------------------------------")
+try:
+    font_type = int(input("Font type: "))
+    if font_type < 1 or font_type > 5:
+        print("Enter only numbers in range 1 to 5!")
+        exit()
+except ValueError:
+    print("Enter only numbers in range 1 to 5!")
+    exit()
+
 # use spinner during generation
 os.system('cls')
 spinner = Spinner("Generating word cloud...")
@@ -100,7 +150,10 @@ try:
     start_time = time.time()
 
     # initiate the word cloud
-    fc.basic_word_cloud(related_words, bkg_colors[bkg_color-1], colors[theme_color-1], colors[color1-1], colors[color2-1], colors[color3-1])
+    fc.basic_word_cloud(
+        related_words, bkg_colors[bkg_color-1], colors[theme_color-1], colors[color1-1], 
+        colors[color2-1], colors[color3-1], font_weights[font_weight-1], font_types[font_type-1]
+    )
 
     # stop timer
     end_time = time.time()
