@@ -25,7 +25,6 @@ class Spinner:
                 sys.stdout.flush()
                 time.sleep(0.1)
                 idx += 1
-            os.system('cls')
             sys.stdout.write('\rFinished generating word cloud!')
 
         self.thread = threading.Thread(target=spin)
@@ -47,14 +46,9 @@ if not fc.is_valid_word(theme_word):
     exit()
 
 # get number of related words
-try:
-    num_words = int(input("Enter the number of related words (0 < # <= 100): "))
-    if num_words < 1 or num_words > 100:
-        print("Enter only numbers in range 1 to 100!")
-        exit()
-except ValueError:
-    print("Enter only numbers in range 1 to 100!")
-    exit()
+num_words = fc.get_validated_input("Enter number of words (1 < x <= 75): ", range(1, 76))
+# subtract one from the related words to account for extra theme word
+num_words -= 1
 
 # check for related words
 related_words = fc.get_related_words(theme_word, num_words)
@@ -69,14 +63,7 @@ bkg_colors = ["white", "black", "gray"]
 print("----------------------------------------------------------------------")
 print("\tChoose a background color - [white=1, black=2, gray=3]")
 print("----------------------------------------------------------------------")
-try:
-    bkg_color = int(input("Background color: "))
-    if bkg_color < 1 or bkg_color > 3:
-        print("Enter only numbers in range 1 to 3!")
-        exit()
-except ValueError:
-    print("Enter only numbers in range 1 to 3!")
-    exit()
+bkg_color = fc.get_validated_input("Background color: ", range(1, 4))
 
 # get colors
 os.system('cls')
@@ -84,31 +71,11 @@ colors = ["red", "blue", "green", "yellow", "purple", "orange"]
 print("----------------------------------------------------------------------")
 print("Choose colors - [red=1, blue=2, green=3, yellow=4, purple=5, orange=6]")
 print("----------------------------------------------------------------------")
-try:
-    theme_color = int(input("Theme color: "))
-    if theme_color < 1 or theme_color > 6:
-        print("Enter only numbers in range 1 to 6!")
-        exit()
-except ValueError:
-    print("Enter only numbers in range 1 to 6!")
-    exit()
+theme_color = fc.get_validated_input("Theme color: ", range(1, 7))
 print("Choose three more colors - ")
-try:
-    color1 = int(input("Color one: "))
-    if color1 < 1 or color1 > 6:
-        print("Enter only numbers in range 1 to 6!")
-        exit()
-    color2 = int(input("Color two: "))
-    if color2 < 1 or color2 > 6:
-        print("Enter only numbers in range 1 to 6!")
-        exit()
-    color3 = int(input("Color three: "))
-    if color3 < 1 or color3 > 6:
-        print("Enter only numbers in range 1 to 6!")
-        exit()
-except ValueError:
-    print("Enter only numbers in range 1 to 6!")
-    exit()
+color1 = fc.get_validated_input("Color one: ", range(1, 7))
+color2 = fc.get_validated_input("Color two: ", range(1, 7))
+color3 = fc.get_validated_input("Color three: ", range(1, 7))
 
 # get font weight
 os.system('cls')
@@ -116,14 +83,7 @@ font_weights = ['light', 'normal', 'bold']
 print("----------------------------------------------------------------------")
 print("\tChoose a font weight - [light=1, normal=2, bold=3]")
 print("----------------------------------------------------------------------")
-try:
-    font_weight = int(input("Font weight: "))
-    if font_weight < 1 or font_weight > 3:
-        print("Enter only numbers in range 1 to 3!")
-        exit()
-except ValueError:
-    print("Enter only numbers in range 1 to 3!")
-    exit()
+font_weight = fc.get_validated_input("Font weight: ", range(1, 4))
 
 # get font type
 os.system('cls')
@@ -131,14 +91,7 @@ font_types = ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy']
 print("-------------------------------------------------------------------------------")
 print("Choose a font type - [serif=1, sans-serif=2, monospace=3, cursive=4, fantasy=5]")
 print("-------------------------------------------------------------------------------")
-try:
-    font_type = int(input("Font type: "))
-    if font_type < 1 or font_type > 5:
-        print("Enter only numbers in range 1 to 5!")
-        exit()
-except ValueError:
-    print("Enter only numbers in range 1 to 5!")
-    exit()
+font_type = fc.get_validated_input("Font type: ", range(1, 6))
 
 # use spinner during generation
 os.system('cls')

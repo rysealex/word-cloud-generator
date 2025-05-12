@@ -1,8 +1,6 @@
-from wordcloud import WordCloud
 from rtree import index
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.transforms as mtransforms
 import random
 import requests
 import os
@@ -12,6 +10,24 @@ import os
                                             Basic word cloud generator
     -------------------------------------------------------------------------------------------------------
 '''
+
+DEBUG_MODE = False
+STATISTICS_MODE = False
+
+'''
+    Checks for valid user inputs, displays error message and exits if invalid
+    Returns the user input if valid
+'''
+def get_validated_input(prompt, range):
+    try:
+        value = int(input(prompt))
+        if value not in range:
+            raise ValueError
+        # return the user input value if valid
+        return value
+    except ValueError:
+        print(f"Enter only numbers in range {range.start} to {range.stop - 1}!")
+        exit()
 
 '''
     Check if the theme word is a real english word.
@@ -39,13 +55,23 @@ def get_related_words(theme_word, num_words):
     return related_words
 
 '''
-    Width, height, and step constants
+    Gets the meaning and definition of a word
+    Uses the Dictionary API, returns a list of meanings
 '''
+def get_word_meaning(word):
+    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word.lower()}"
+    try:
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        if isinstance(data, list):
+            return data[0]['meanings'][0]['definitions'][0]['definition']
+        else:
+            return "No definition found."
+    except Exception as e:
+        return "Error fetching definition."
 
-# width and heigth of figure
+# width and height of the figure
 width, height = 20, 10
-# spacing between points
-step = 0.5
 
 '''
     Generate the spiral coord points
@@ -66,14 +92,10 @@ def gen_spiral_coord(center_x, center_y, num_points, a=1.5, b=0.08):
 # create the spiral coord points
 coord = gen_spiral_coord(width / 2, height / 2, 8000)
 
-# shuffle the coord points
-#random.shuffle(coord)
-
 # total number of coord points
 total_coord = len(coord)
 
 # prepare the figure
-#plt.rcParams['toolbar'] = 'None'
 fig, ax = plt.subplots(figsize=(20, 10))
 plt.xlim(0, width)
 plt.ylim(0, height)
@@ -81,9 +103,10 @@ plt.axis('off')
 fm = plt.get_current_fig_manager()
 fm.full_screen_toggle()
 
-'''# plot all original coord points as white
-xs, ys = zip(*coord)
-ax.scatter(xs, ys, color='white', s=20)'''
+# debug mode: plot all original coord points as white
+if DEBUG_MODE:
+    xs, ys = zip(*coord)
+    ax.scatter(xs, ys, color='white', s=20)
 
 # track used points
 used_coord = []
@@ -104,24 +127,30 @@ placed_words = []
 box_index = index.Index()
 
 '''
+    Close the word cloud figure when the user clicks the esc button
+'''
+def close_fig(e):
+    if e.key == 'escape':
+        plt.close(e.canvas.figure)
+
+'''
     Generate the basic word cloud
 '''
 def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, font_weight, font_type):
     
-    # set background color and connect hover effect
+    # set background color and connect hover and close effect
     fig.set_facecolor(bkg_color)
     fig.canvas.mpl_connect('motion_notify_event', on_hover)
+    fig.canvas.mpl_connect('key_press_event', close_fig)
 
     # total number of words
     total_words = len(word_list)
     # extract the theme word from word list
     theme_word = word_list.pop(0)
-    # sort word list by longest to shortest
-    #word_list.sort(key=len, reverse=True)
-    #word_list = [theme_word] + word_list
+
+    # split into groups based on lengths
     one_third = total_words // 3
     two_third = one_third * 2
-    # split into groups based on lengths
     first = word_list[:one_third]
     second = word_list[one_third:two_third]
     third = word_list[two_third:]
@@ -156,7 +185,6 @@ def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, 
 
     # initiate the second chance for any unused words
     if unused_words:
-        #print("Starting 2ND CHANCE")
         (unused_points_2, unused_words_2) = second_chance(
             unused_words, (7, 10), font_weight, font_type, color_range, 0
             )
@@ -165,23 +193,24 @@ def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, 
     if unused_words_2:
         # get last coord point to try with
         last_coord = coord[num_coord:]
-        #print("LAST CHANCE MECHANISM ENGAGED")
         unused_points_3 = last_chance(
-            unused_words_2, last_coord, (10, 15), font_weight, font_type, color_range, (0, 90)
+            unused_words_2, last_coord, (7, 10), font_weight, font_type, color_range, (0, 90)
             )
 
-    '''# display accuracy
-    print(f'(1ST ATTEMPT) - Number of failed coordinates after first attempt: {unused_points} / {total_coord}')
-    if unused_words:
-        print(f'(2ND CHANCE) - Number of failed coordinates after second attempt: {unused_points_2} / {total_coord}')
-    if unused_words_2:
-        print(f'(LAST CHANCE) - Number of failed coordinates after last attempt: {unused_points_3} / {total_coord}')
-    '''
+    # display accuracy statistics
+    if STATISTICS_MODE:
+        print(f'(1ST ATTEMPT) - Number of failed coordinate points: {unused_points} / {total_coord}')
+        if unused_words:
+            print(f'(2ND CHANCE) - Number of failed coordinate points: {unused_points_2} / {total_coord}')
+        if unused_words_2:
+            print(f'(LAST CHANCE) - Number of failed coordinate points: {unused_points_3} / {total_coord}')
+
+    # display the word cloud
     plt.show()
 
 '''
     Attempt to place all the words on the word cloud
-    Returns the total number of unused points
+    Returns the total number of unused points, current coord index, and number of placed words
 '''
 def place_words(
         words, fontrange, fontweight, font_type, color_range, rotation, 
@@ -190,100 +219,21 @@ def place_words(
 
     # track the number of unused points
     unused_points = 0
-
-    ''' 
-    # inflate boundary padding
-    padding = 0.1
-    '''
-
+    # keep track of coordinate index
+    coord_index = 0
     # get the range for the current words font sizes
     min_size = fontrange[0]
     max_size = fontrange[1]
-
-    # keep track of coordinate index
-    coord_index = 0
-
-    # padding of box size
-    padding_scale = 0.01
 
     # place each word in the current words list
     for word in words:
         # flag for if current word was placed
         placed = False
 
-        # get the current words font size from the current range
-        #fontsize = random.randint(min_size, max_size)
-
-        '''# check for very first word
-        if i == 0:
-            
-            # start at center of image
-            x, y = (10, 5)
-            # create the text object with current attributes
-            text_obj = plt.text(
-                x, y, word,
-                fontsize=first_size,
-                fontweight=fontweight,
-                ha='center', va='center',
-                color=first_color,
-                rotation=rotation
-            )
-            fig.canvas.draw() # draw for checking bounds
-
-            # get boundary box in display coords
-            box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
-            # convert to data coords
-            box_data = box.transformed(ax.transData.inverted())
-
-            # padding of box size
-            padding_scale = 0.05
-
-            # get original extents
-            x0, y0, x1, y1 = box_data.extents
-            width = x1 - x0
-            height = y1 - y0
-
-            # apply the padding based on the size of the box
-            pad_x = width * padding_scale
-            pad_y = height * padding_scale
-
-            # create the padded box
-            padded_box = mtransforms.Bbox.from_extents(
-                x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
-            )
-            padded_box = box_data.expanded(1, 1)
-            
-            # check for a collision with near text objects
-            collisions = list(box_index.intersection(padded_box.extents))
-            if not collisions:
-                # add text object (no collision detected)
-                boxes.append(padded_box)
-                box_index.insert(len(boxes) - 1, padded_box.extents)
-                # add used coord points
-                used_coord.append((x, y))
-                placed = True # flip flag
-                # display the padded box surrounding the word
-                rect = plt.Rectangle((padded_box.x0, padded_box.y0),
-                     padded_box.width, padded_box.height,
-                     linewidth=1, edgecolor='white', facecolor='none')
-                ax.add_patch(rect)
-                print(f'Successfully placed FIRST word {word}')
-                placed_words.append((word, padded_box))
-                continue
-            else:
-                # remove collision text object
-                text_obj.remove()
-                # increment unused points
-                unused_points += 1
-                # add unused coord points
-                unused_coord.append((x, y))
-                continue'''
-
         # attempt multiple tries per word, decreasing the font size each time
         for fontsize in range(max_size, min_size - 1, -5):
 
             # continue until coord is empty
-            #while coord:
             while coord_index < len(coord):
 
                 # check for theme word placement
@@ -295,9 +245,6 @@ def place_words(
                     # get color for current word
                     color = random.choice(color_range)
 
-                # get a new coordinate
-                #x, y = coord[coord_index]
-                #print(x, y)
                 # create the text object with current attributes
                 text_obj = plt.text(
                     x, y, word,
@@ -314,27 +261,8 @@ def place_words(
                 box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
                 # convert to data coords
                 box_data = box.transformed(ax.transData.inverted())
-
-                '''
-                # inflate boundary box
-                x0, y0, x1, y1 = box_data.extents
-                inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
-                '''
-
-                # get original extents
-                x0, y0, x1, y1 = box_data.extents
-                width = x1 - x0
-                height = y1 - y0
-
-                # apply the padding based on the size of the box
-                pad_x = width * padding_scale
-                pad_y = height * padding_scale
-
-                # create the padded box
-                padded_box = mtransforms.Bbox.from_extents(
-                    x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
-                )
-                padded_box = box_data.expanded(1.3, 1.3)
+                # get padded box
+                padded_box = box_data.expanded(1.415, 1.415)
                 
                 # check for a collision with near text objects
                 collisions = list(box_index.intersection(padded_box.extents))
@@ -346,31 +274,35 @@ def place_words(
                     used_coord.append((x, y))
                     placed = True # flip flag
                     # display the padded box surrounding the word
-                    '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
-                        padded_box.width, padded_box.height,
-                        linewidth=1, edgecolor='white', facecolor='none')
-                    ax.add_patch(rect)'''
+                    if DEBUG_MODE:
+                        rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                            padded_box.width, padded_box.height,
+                            linewidth=1, edgecolor='white', facecolor='none')
+                        ax.add_patch(rect)
                     num_placed_words += 1
                     os.system('cls')
+                    # display words placed in terminal
                     print(f'Words placed: {num_placed_words}/{total_words}')
                     placed_words.append((word, padded_box))
                     break
                 else:
                     # remove collision text object
                     text_obj.remove()
-                    
-                coord_index += 1
+
+                # move to next coord point in coord
+                coord_index += 1    
+            # break the loop if word is placed
             if placed:
                 break
 
-        # if word could not be placed after all decreasing font size attempts, add to unused_words
+        # if word could not be placed after all decreasing font size attempts
         if not placed:
+            #add to unused_words
             unused_words.append(word)
             # increment unused points
             unused_points += 1
             # add unused coord points
             unused_coord.append((x, y))
-            print(f'Could not place {word}')
 
     return (unused_points, coord_index, num_placed_words)
 
@@ -378,35 +310,29 @@ def place_words(
     The second chance to place any unused words (this time with a smaller font size)
     First tries to place on unused coord points
     Next tries to place with global remaining coord points
-    Returns the total number of unused points
+    Returns the total number of unused points and unused words after second attempt
 '''
 def second_chance(unused_words, fontrange, fontweight, font_type, color_range, rotation):
 
     # track the number of unused points
     unused_points = 0
-
     # track unused words
     unused_words_2 = []
-
-    # set the padding scale
-    padding_scale = 0.01
-
     # get the range for the current words font sizes
     min_size = fontrange[0]
     max_size = fontrange[1]
 
-    # place each word in the unused words list
+    # place each word from the unused words list
     for unused_word in unused_words:
+
         # flag for if current word was placed
         placed = False
-
         # get the current words font size from the current range
         fontsize = random.randint(min_size, max_size)
-
         # get random color from color range
         color = random.choice(color_range)
 
-        # continue until coord is empty
+        # continue until unused coord points are empty
         while unused_coord:
 
             # get a new coordinate
@@ -427,27 +353,8 @@ def second_chance(unused_words, fontrange, fontweight, font_type, color_range, r
             box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
             # convert to data coords
             box_data = box.transformed(ax.transData.inverted())
-
-            '''
-            # inflate boundary box
-            x0, y0, x1, y1 = box_data.extents
-            inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
-            '''
-
-            # get original extents
-            x0, y0, x1, y1 = box_data.extents
-            width = x1 - x0
-            height = y1 - y0
-
-            # apply the padding based on the size of the box
-            pad_x = width * padding_scale
-            pad_y = height * padding_scale
-
-            # create the padded box
-            padded_box = mtransforms.Bbox.from_extents(
-                x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
-            )
-            padded_box = box_data.expanded(1, 1)
+            # get padded box
+            padded_box = box_data.expanded(1.415, 1.415)
             
             # check for a collision with near text objects
             collisions = list(box_index.intersection(padded_box.extents))
@@ -458,13 +365,14 @@ def second_chance(unused_words, fontrange, fontweight, font_type, color_range, r
                 # add used coord points
                 used_coord.append((x, y))
                 placed = True # flip flag
-                # display the padded box surrounding the word
-                '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
-                        padded_box.width, padded_box.height,
-                        linewidth=1, edgecolor='white', facecolor='none')
-                ax.add_patch(rect)'''
+                if DEBUG_MODE:
+                    # display the padded box surrounding the word
+                    rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                            padded_box.width, padded_box.height,
+                            linewidth=1, edgecolor='white', facecolor='none')
+                    ax.add_patch(rect)
+                # display words placed in terminal
                 print(f'Successfully placed {unused_word} on second chance')
-                placed_words.append((unused_word, padded_box))
                 break
             else:
                 # remove collision text object
@@ -472,42 +380,38 @@ def second_chance(unused_words, fontrange, fontweight, font_type, color_range, r
                 # increment unused points
                 unused_points += 1
 
+        # add unused word to unused words 2 list
         if not placed:
             unused_words_2.append(unused_word)
-            print(f'Could not place {unused_word} on unused point')
 
     return (unused_points, unused_words_2)
 
+'''
+    The last chance attempts to place any words that failed the second chance attempt
+    This attempt tries to place each unused word with a much smaller font on all the remaining points
+    Keeps iterating until either all words have been placed or all points have been searched
+    Returns the number of any unused points that were unable to be placed after this attempt
+'''
 def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, color_range, rotationrange):
 
     # track the number of unused points
     unused_points = 0
-
-    # set the padding scale
-    padding_scale = 0.05
-
     # get the range for the current words font sizes
     min_size = fontrange[0]
     max_size = fontrange[1]
-
     # get the range for the rotation
     r1 = rotationrange[0]
     r2 = rotationrange[1]
-
     # randomize the last coordinate points
     random.shuffle(last_coord)
 
     # place each word in the unused words list
     for unused_word_2 in unused_words_2:
-        # flag for if current word was placed
-        placed = False
 
         # get the current words font size from the current range
         fontsize = random.randint(min_size, max_size)
-
         # get random rotation (either 0 or 90 degrees)
         rotation = random.choice([r1, r2])
-
         # get random color from color range
         color = random.choice(color_range)
 
@@ -532,27 +436,8 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, co
             box = text_obj.get_window_extent(renderer=fig.canvas.get_renderer())
             # convert to data coords
             box_data = box.transformed(ax.transData.inverted())
-
-            '''
-            # inflate boundary box
-            x0, y0, x1, y1 = box_data.extents
-            inflated_box = mtransforms.Bbox.from_extents(x0 - padding, y0 - padding, x1 + padding, y1 + padding)
-            '''
-
-            # get original extents
-            x0, y0, x1, y1 = box_data.extents
-            width = x1 - x0
-            height = y1 - y0
-
-            # apply the padding based on the size of the box
-            pad_x = width * padding_scale
-            pad_y = height * padding_scale
-
-            # create the padded box
-            padded_box = mtransforms.Bbox.from_extents(
-                x0 - pad_x, y0 - pad_y, x1 + pad_x, y1 + pad_y    
-            )
-            padded_box = box_data.expanded(1, 1)
+            # get padded box
+            padded_box = box_data.expanded(1.415, 1.415)
             
             # check for a collision with near text objects
             collisions = list(box_index.intersection(padded_box.extents))
@@ -562,14 +447,14 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, co
                 box_index.insert(len(boxes) - 1, padded_box.extents)
                 # add used coord points
                 used_coord.append((x, y))
-                placed = True # flip flag
-                # display the padded box surrounding the word
-                '''rect = plt.Rectangle((padded_box.x0, padded_box.y0),
-                        padded_box.width, padded_box.height,
-                        linewidth=1, edgecolor='white', facecolor='none')
-                ax.add_patch(rect)'''
+                if DEBUG_MODE:
+                    # display the padded box surrounding the word
+                    rect = plt.Rectangle((padded_box.x0, padded_box.y0),
+                            padded_box.width, padded_box.height,
+                            linewidth=1, edgecolor='white', facecolor='none')
+                    ax.add_patch(rect)
+                # display words placed in terminal
                 print(f'Successfully placed {unused_word_2} on last chance')
-                placed_words.append((unused_word_2, padded_box))
                 break
             else:
                 # remove collision text object
@@ -577,11 +462,11 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, co
                 # increment unused points
                 unused_points += 1
 
-        if not placed:
-            print(f'Could not place {unused_word_2} on last try')
-
     return unused_points
 
+'''
+    Hovered words signal the matplotlib toolbar to output the hovered words definition
+'''
 def on_hover(event):
     if not event.inaxes:
         return
@@ -591,7 +476,7 @@ def on_hover(event):
     # for each word connect to toolbar on hover
     for word, bbox in placed_words:
         if bbox.contains(mouse_data_x, mouse_data_y):
-            fig.canvas.toolbar.set_message(f"Hovered: {word}")
+            fig.canvas.toolbar.set_message(f"{word}: {get_word_meaning(word)}")
             return
-    # rest toolbar
-    fig.canvas.toolbar.set_message("")
+    # reset toolbar
+    fig.canvas.toolbar.set_message("Press ESC to close")
