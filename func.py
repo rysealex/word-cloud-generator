@@ -11,8 +11,8 @@ import os
     -------------------------------------------------------------------------------------------------------
 '''
 
-DEBUG_MODE = False
-STATISTICS_MODE = False
+DEBUG_MODE = True
+STATISTICS_MODE = True
 
 '''
     Checks for valid user inputs, displays error message and exits if invalid
@@ -106,7 +106,7 @@ fm.full_screen_toggle()
 # debug mode: plot all original coord points as white
 if DEBUG_MODE:
     xs, ys = zip(*coord)
-    ax.scatter(xs, ys, color='white', s=20)
+    ax.scatter(xs, ys, color='red', s=20)
 
 # track used points
 used_coord = []
@@ -277,7 +277,7 @@ def place_words(
                     if DEBUG_MODE:
                         rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                             padded_box.width, padded_box.height,
-                            linewidth=1, edgecolor='white', facecolor='none')
+                            linewidth=1, edgecolor='red', facecolor='none')
                         ax.add_patch(rect)
                     num_placed_words += 1
                     os.system('cls')
@@ -369,7 +369,7 @@ def second_chance(unused_words, fontrange, fontweight, font_type, color_range, r
                     # display the padded box surrounding the word
                     rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                             padded_box.width, padded_box.height,
-                            linewidth=1, edgecolor='white', facecolor='none')
+                            linewidth=1, edgecolor='red', facecolor='none')
                     ax.add_patch(rect)
                 # display words placed in terminal
                 print(f'Successfully placed {unused_word} on second chance')
@@ -451,7 +451,7 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, co
                     # display the padded box surrounding the word
                     rect = plt.Rectangle((padded_box.x0, padded_box.y0),
                             padded_box.width, padded_box.height,
-                            linewidth=1, edgecolor='white', facecolor='none')
+                            linewidth=1, edgecolor='red', facecolor='none')
                     ax.add_patch(rect)
                 # display words placed in terminal
                 print(f'Successfully placed {unused_word_2} on last chance')
