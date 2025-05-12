@@ -15,7 +15,7 @@ This Python script generates a word cloud image based on a user-provided theme w
 * **Interactive Definitions:** Hovering the mouse over a word in the generated image displays its definition (fetched from the Dictionary API) in the Matplotlib toolbar.
 * **Progress Indicator:** Shows a spinner animation during the word cloud generation process.
 * **Elapsed Time:** Displays the total time taken to generate the word cloud.
-* **Debug Mode (Optional):** When enabled, visualizes the padded bounding boxes around each placed word and spiral coordinate points in white, which can be helpful for understanding the collision detection.
+* **Debug Mode (Optional):** When enabled, visualizes the padded bounding boxes around each placed word and spiral coordinate points in red, which can be helpful for understanding the collision detection.
 * **Statistics Mode (Optional):** When enabled, prints the number of failed coordinate points during each word placement attempt to the terminal, providing insights into the algorithm's efficiency.
 
 ## Prerequisites
@@ -61,7 +61,7 @@ python generator.py
 
 5. Press the Esc key to close the word cloud window.
 
-6. (If Debug Mode is enabled) You will see white boxes around each word and a series of white spiral coordinate points in the generated image.
+6. (If Debug Mode is enabled) You will see red boxes around each word and a series of red spiral coordinate points in the generated image.
 
 7. (If Statistics Mode is enabled) The terminal will display the number of failed placement attempts during the word cloud generation.
 
