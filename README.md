@@ -3,7 +3,6 @@
 This Python script generates a word cloud image based on a user-provided theme word and several customizable options. It fetches related words using the Datamuse API and arranges them in a visually appealing spiral layout. Each word's definition can be viewed by hovering over it in the generated image.
 
 ![Example Word Cloud](media/computer.png)
-[Watch a Demo Video](images/WordCloudGenDemo.pm4)
 
 ## Features
 
