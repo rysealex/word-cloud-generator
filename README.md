@@ -2,6 +2,9 @@
 
 This Python script generates a word cloud image based on a user-provided theme word and several customizable options. It fetches related words using the Datamuse API and arranges them in a visually appealing spiral layout. Each word's definition can be viewed by hovering over it in the generated image.
 
+![Example Word Cloud](media/computer.png)
+[Watch a Demo Video](images/WordCloudGenDemo.pm4)
+
 ## Features
 
 * **Theme Word Input:** Allows the user to enter a central theme word for the word cloud.
@@ -15,7 +18,7 @@ This Python script generates a word cloud image based on a user-provided theme w
 * **Interactive Definitions:** Hovering the mouse over a word in the generated image displays its definition (fetched from the Dictionary API) in the Matplotlib toolbar.
 * **Progress Indicator:** Shows a spinner animation during the word cloud generation process.
 * **Elapsed Time:** Displays the total time taken to generate the word cloud.
-* **Debug Mode (Optional):** When enabled, visualizes the padded bounding boxes around each placed word and spiral coordinate points in red, which can be helpful for understanding the collision detection.
+* **Debug Mode (Optional):** When enabled, visualizes the padded bounding boxes around each placed word and spiral coordinate points in red, which can be helpful for understanding the collision detection. ![Debug Mode](media/debug.png)
 * **Statistics Mode (Optional):** When enabled, prints the number of failed coordinate points during each word placement attempt to the terminal, providing insights into the algorithm's efficiency.
 
 ## Prerequisites
