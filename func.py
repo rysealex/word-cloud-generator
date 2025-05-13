@@ -11,8 +11,8 @@ import os
     -------------------------------------------------------------------------------------------------------
 '''
 
-DEBUG_MODE = True
-STATISTICS_MODE = True
+DEBUG_MODE = False
+STATISTICS_MODE = False
 
 '''
     Checks for valid user inputs, displays error message and exits if invalid
