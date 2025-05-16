@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import random
 import requests
 import os
+from io import BytesIO
 
 '''
     -------------------------------------------------------------------------------------------------------
@@ -207,6 +208,13 @@ def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, 
 
     # display the word cloud
     plt.show()
+
+    # save the figure to a BytesIO buffer
+    buffer = BytesIO()
+    fig.savefig(buffer, format="PNG", bbox_inches='tight', pad_inches=0)
+    buffer.seek(0)
+    plt.close(fig) # close figure to free up memory
+    return buffer
 
 '''
     Attempt to place all the words on the word cloud

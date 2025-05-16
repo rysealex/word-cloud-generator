@@ -1,6 +1,8 @@
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
-from io import BytesIO
+import os
+import matplotlib
+matplotlib.use('Agg')
 import func as fc
 
 app = Flask(__name__)
@@ -27,7 +29,7 @@ def generate_cloud():
         return jsonify({"error": "Not enough related words found"}), 400
     
     # generate image
-    img = fc.basic_word_cloud(
+    img_buffer = fc.basic_word_cloud(
         related_words,
         bkg_color,
         theme_color,
@@ -37,11 +39,8 @@ def generate_cloud():
         font_weight,
         font_type
     )
-
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    return send_file(buffer, mimetype="image/png")
+    return send_file(img_buffer, mimetype="image/png")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
