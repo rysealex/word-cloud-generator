@@ -58,7 +58,7 @@ if len(related_words) != num_words+1:
     exit()
 
 # get background color
-os.system('cls')
+#os.system('cls')
 bkg_colors = ["white", "black", "gray"]
 print("----------------------------------------------------------------------")
 print("\tChoose a background color - [white=1, black=2, gray=3]")
@@ -66,7 +66,7 @@ print("----------------------------------------------------------------------")
 bkg_color = fc.get_validated_input("Background color: ", range(1, 4))
 
 # get colors
-os.system('cls')
+#os.system('cls')
 colors = ["red", "blue", "green", "yellow", "purple", "orange"]
 print("----------------------------------------------------------------------")
 print("Choose colors - [red=1, blue=2, green=3, yellow=4, purple=5, orange=6]")
@@ -78,7 +78,7 @@ color2 = fc.get_validated_input("Color two: ", range(1, 7))
 color3 = fc.get_validated_input("Color three: ", range(1, 7))
 
 # get font weight
-os.system('cls')
+#os.system('cls')
 font_weights = ['light', 'normal', 'bold']
 print("----------------------------------------------------------------------")
 print("\tChoose a font weight - [light=1, normal=2, bold=3]")
@@ -86,7 +86,7 @@ print("----------------------------------------------------------------------")
 font_weight = fc.get_validated_input("Font weight: ", range(1, 4))
 
 # get font type
-os.system('cls')
+#os.system('cls')
 font_types = ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy']
 print("-------------------------------------------------------------------------------")
 print("Choose a font type - [serif=1, sans-serif=2, monospace=3, cursive=4, fantasy=5]")
@@ -94,7 +94,7 @@ print("-------------------------------------------------------------------------
 font_type = fc.get_validated_input("Font type: ", range(1, 6))
 
 # use spinner during generation
-os.system('cls')
+#os.system('cls')
 spinner = Spinner("Generating word cloud...")
 spinner.start()
 

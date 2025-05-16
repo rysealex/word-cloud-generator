@@ -288,7 +288,7 @@ def place_words(
                             linewidth=1, edgecolor='red', facecolor='none')
                         ax.add_patch(rect)
                     num_placed_words += 1
-                    os.system('cls')
+                    #os.system('cls')
                     # display words placed in terminal
                     print(f'Words placed: {num_placed_words}/{total_words}')
                     placed_words.append((word, padded_box))
