@@ -6,7 +6,7 @@ import func as fc
 app = Flask(__name__)
 CORS(app) # enable CORS
 
-@app.route("/generate-cloud", method=["POST"])
+@app.route("/generate-cloud", methods=["POST"])
 def generate_cloud():
     data = request.get_json()
     # get user input
