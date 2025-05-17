@@ -71,14 +71,14 @@ def get_word_meaning(word):
     except Exception as e:
         return "Error fetching definition."
 
-# width and height of the figure
-width, height = 20, 10
+'''# width and height of the figure
+width, height = 20, 10'''
 
 '''
     Generate the spiral coord points
     Returns a list of coord points
 '''
-def gen_spiral_coord(center_x, center_y, num_points, a=1.5, b=0.08):
+def gen_spiral_coord(center_x, center_y, num_points, width, height, a=1.5, b=0.08):
     coord = []
     theta = 0
     for _ in range(num_points):
@@ -90,7 +90,7 @@ def gen_spiral_coord(center_x, center_y, num_points, a=1.5, b=0.08):
         theta += 0.08
     return coord
         
-# create the spiral coord points
+'''# create the spiral coord points
 coord = gen_spiral_coord(width / 2, height / 2, 8000)
 
 # total number of coord points
@@ -125,7 +125,7 @@ boxes = []
 placed_words = []
 
 # R-tree box index
-box_index = index.Index()
+box_index = index.Index()'''
 
 '''
     Close the word cloud figure when the user clicks the esc button
@@ -138,10 +138,44 @@ def close_fig(e):
     Generate the basic word cloud
 '''
 def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weight, font_type):
+
+    # width and height of the figure
+    width, height = 20, 10
+
+    # generate the spiral coord points for this generation
+    coord = gen_spiral_coord(width / 2, height / 2, 8000, width, height,)
+    total_coord = len(coord)
+
+    # prepare the figure for this generation
+    fig, ax = plt.subplots(figsize=(width, height))
+    plt.xlim(0, width)
+    plt.ylim(0, height)
+    plt.axis('off')
+    fm = plt.get_current_fig_manager()
+    fm.full_screen_toggle()
+    fig.set_facecolor(bkg_color)  # set background color here
+
+    # debug mode: plot all original coord points as white
+    if DEBUG_MODE:
+        xs, ys = zip(*coord)
+        ax.scatter(xs, ys, color='red', s=20)
+
+    # track used points for this generation
+    used_coord = []
+    # track unused points for this generation
+    unused_coord = []
+    # hold any unused words for this generation
+    unused_words = []
+    # to store the boundary boxes for detecting overlaps for this generation
+    boxes = []
+    # to store all the placed words for this generation
+    placed_words = []
+    # r-tree box index for this generation
+    box_index = index.Index()
     
     # set background color and connect hover and close effect
     fig.set_facecolor(bkg_color)
-    fig.canvas.mpl_connect('motion_notify_event', on_hover)
+    fig.canvas.mpl_connect('motion_notify_event', lambda event: on_hover(event, fig, placed_words))
     fig.canvas.mpl_connect('key_press_event', close_fig)
 
     # total number of words
@@ -162,7 +196,8 @@ def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weigh
     # place the theme word first
     (_, theme_coords, num_placed_words) = place_words(
         [theme_word], (100, 100), font_weight, font_type, theme_color, 
-        0, (10, 5), num_placed_words, total_words
+        0, (10, 5), num_placed_words, total_words, coord, boxes, box_index, 
+        used_coord, unused_coord, unused_words, fig, ax, placed_words
         )
 
     # get color ranges
@@ -170,13 +205,16 @@ def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weigh
 
     # place the related words
     (unused_points, num_coord, num_placed_words) = place_words(
-        first, (20, 35), font_weight, font_type, other_colors, 0, (), num_placed_words, total_words
+        first, (20, 35), font_weight, font_type, other_colors, 0, (), num_placed_words, total_words,
+        coord, boxes, box_index, used_coord, unused_coord, unused_words, fig, ax, placed_words
         )
     (up2, nc2, num_placed_words) = place_words(
-        second, (10, 20), font_weight, font_type, other_colors, 90, (), num_placed_words, total_words
+        second, (10, 20), font_weight, font_type, other_colors, 90, (), num_placed_words, total_words,
+        coord, boxes, box_index, used_coord, unused_coord, unused_words, fig, ax, placed_words
         )
     (up3, nc3, num_placed_words) = place_words(
-        third, (10, 15), font_weight, font_type, other_colors, 0, (), num_placed_words, total_words
+        third, (10, 15), font_weight, font_type, other_colors, 0, (), num_placed_words, total_words,
+        coord, boxes, box_index, used_coord, unused_coord, unused_words, fig, ax, placed_words
         )
     unused_points += up2 + up3
     num_coord += theme_coords + nc2 + nc3
@@ -187,7 +225,8 @@ def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weigh
     # initiate the second chance for any unused words
     if unused_words:
         (unused_points_2, unused_words_2) = second_chance(
-            unused_words, (7, 10), font_weight, font_type, other_colors, 0
+            unused_words, (7, 10), font_weight, font_type, other_colors, 0,
+            coord, boxes, box_index, used_coord, unused_coord, fig, ax, placed_words
             )
 
     # begin the last chance if still any unused words remaining
@@ -195,7 +234,8 @@ def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weigh
         # get last coord point to try with
         last_coord = coord[num_coord:]
         unused_points_3 = last_chance(
-            unused_words_2, last_coord, (7, 10), font_weight, font_type, other_colors, (0, 90)
+            unused_words_2, last_coord, (7, 10), font_weight, font_type, other_colors, (0, 90),
+            boxes, box_index, used_coord, fig, ax, placed_words
             )
 
     # display accuracy statistics
@@ -222,7 +262,8 @@ def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weigh
 '''
 def place_words(
         words, fontrange, fontweight, font_type, color_range, rotation, 
-        theme_points, num_placed_words, total_words
+        theme_points, num_placed_words, total_words, coord, boxes, box_index, 
+        used_coord, unused_coord, unused_words, fig, ax, placed_words
         ):
 
     # track the number of unused points
@@ -237,6 +278,7 @@ def place_words(
     for word in words:
         # flag for if current word was placed
         placed = False
+        x, y = 0, 0 # initialize x and y
 
         # attempt multiple tries per word, decreasing the font size each time
         for fontsize in range(max_size, min_size - 1, -5):
@@ -320,7 +362,10 @@ def place_words(
     Next tries to place with global remaining coord points
     Returns the total number of unused points and unused words after second attempt
 '''
-def second_chance(unused_words, fontrange, fontweight, font_type, color_range, rotation):
+def second_chance(
+        unused_words, fontrange, fontweight, font_type, color_range, rotation,
+        coord, boxes, box_index, used_coord, unused_coord, fig, ax, placed_words       
+        ):
 
     # track the number of unused points
     unused_points = 0
@@ -400,7 +445,9 @@ def second_chance(unused_words, fontrange, fontweight, font_type, color_range, r
     Keeps iterating until either all words have been placed or all points have been searched
     Returns the number of any unused points that were unable to be placed after this attempt
 '''
-def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, color_range, rotationrange):
+def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, color_range, rotationrange,
+                boxes, box_index, used_coord, fig, ax, placed_words
+                ):
 
     # track the number of unused points
     unused_points = 0
@@ -475,7 +522,7 @@ def last_chance(unused_words_2, last_coord, fontrange, fontweight, font_type, co
 '''
     Hovered words signal the matplotlib toolbar to output the hovered words definition
 '''
-def on_hover(event):
+def on_hover(event, fig, placed_words):
     if not event.inaxes:
         return
     # get the inverse transform to go from display to data coordinates

@@ -76,10 +76,7 @@ print("Choose three more colors - ")
 color1 = fc.get_validated_input("Color one: ", range(1, 7))
 color2 = fc.get_validated_input("Color two: ", range(1, 7))
 color3 = fc.get_validated_input("Color three: ", range(1, 7))
-other_colors = []
-other_colors.append(colors[color1-1])
-other_colors.append(colors[color2-1])
-other_colors.append(colors[color3-1])
+other_colors = [colors[i-1] for i in [color1, color2, color3]]
 
 # get font weight
 #os.system('cls')
