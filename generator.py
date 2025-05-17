@@ -76,6 +76,10 @@ print("Choose three more colors - ")
 color1 = fc.get_validated_input("Color one: ", range(1, 7))
 color2 = fc.get_validated_input("Color two: ", range(1, 7))
 color3 = fc.get_validated_input("Color three: ", range(1, 7))
+other_colors = []
+other_colors.append(colors[color1-1])
+other_colors.append(colors[color2-1])
+other_colors.append(colors[color3-1])
 
 # get font weight
 #os.system('cls')
@@ -104,8 +108,7 @@ try:
 
     # initiate the word cloud
     fc.basic_word_cloud(
-        related_words, bkg_colors[bkg_color-1], colors[theme_color-1], colors[color1-1], 
-        colors[color2-1], colors[color3-1], font_weights[font_weight-1], font_types[font_type-1]
+        related_words, bkg_colors[bkg_color-1], colors[theme_color-1], other_colors, font_weights[font_weight-1], font_types[font_type-1]
     )
 
     # stop timer

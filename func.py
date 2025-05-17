@@ -137,7 +137,7 @@ def close_fig(e):
 '''
     Generate the basic word cloud
 '''
-def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, font_weight, font_type):
+def basic_word_cloud(word_list, bkg_color, theme_color, other_colors, font_weight, font_type):
     
     # set background color and connect hover and close effect
     fig.set_facecolor(bkg_color)
@@ -166,17 +166,17 @@ def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, 
         )
 
     # get color ranges
-    color_range = [color1, color2, color3]
+    #color_range = [color1, color2, color3]
 
     # place the related words
     (unused_points, num_coord, num_placed_words) = place_words(
-        first, (20, 35), font_weight, font_type, color_range, 0, (), num_placed_words, total_words
+        first, (20, 35), font_weight, font_type, other_colors, 0, (), num_placed_words, total_words
         )
     (up2, nc2, num_placed_words) = place_words(
-        second, (10, 20), font_weight, font_type, color_range, 90, (), num_placed_words, total_words
+        second, (10, 20), font_weight, font_type, other_colors, 90, (), num_placed_words, total_words
         )
     (up3, nc3, num_placed_words) = place_words(
-        third, (10, 15), font_weight, font_type, color_range, 0, (), num_placed_words, total_words
+        third, (10, 15), font_weight, font_type, other_colors, 0, (), num_placed_words, total_words
         )
     unused_points += up2 + up3
     num_coord += theme_coords + nc2 + nc3
@@ -187,7 +187,7 @@ def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, 
     # initiate the second chance for any unused words
     if unused_words:
         (unused_points_2, unused_words_2) = second_chance(
-            unused_words, (7, 10), font_weight, font_type, color_range, 0
+            unused_words, (7, 10), font_weight, font_type, other_colors, 0
             )
 
     # begin the last chance if still any unused words remaining
@@ -195,7 +195,7 @@ def basic_word_cloud(word_list, bkg_color, theme_color, color1, color2, color3, 
         # get last coord point to try with
         last_coord = coord[num_coord:]
         unused_points_3 = last_chance(
-            unused_words_2, last_coord, (7, 10), font_weight, font_type, color_range, (0, 90)
+            unused_words_2, last_coord, (7, 10), font_weight, font_type, other_colors, (0, 90)
             )
 
     # display accuracy statistics

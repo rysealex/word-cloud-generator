@@ -33,9 +33,7 @@ def generate_cloud():
         related_words,
         bkg_color,
         theme_color,
-        other_colors[0],
-        other_colors[1],
-        other_colors[2],
+        other_colors,
         font_weight,
         font_type
     )
