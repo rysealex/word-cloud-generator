@@ -20,6 +20,10 @@ This Python script generates a word cloud image based on a user-provided theme w
 * **Debug Mode (Optional):** When enabled, visualizes the padded bounding boxes around each placed word and spiral coordinate points in red, which can be helpful for understanding the collision detection. ![Debug Mode](media/debug.png)
 * **Statistics Mode (Optional):** When enabled, prints the number of failed coordinate points during each word placement attempt to the terminal, providing insights into the algorithm's efficiency.
 
+## Try a Quick Demo!
+
+Want to see the Word Cloud Generator in action? Head over to my personal portfolio website: https://rysealex.github.io/my-portfolio/ go to the **Projects** section, and you'll find the **Word Cloud Generator** ready for you to try. Keep in mind that the number of related words is limited in this live demo for a smoother experience.
+
 ## Prerequisites
 
 * Python 3.x
